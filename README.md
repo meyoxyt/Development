@@ -1,74 +1,111 @@
 # Development - Minimax 2.1 AI Assistant
 
-A full-featured AI assistant powered by [Minimax 2.1](https://platform.minimaxi.com/) through Ollama with comprehensive system and file management tools.
+A full-featured AI assistant powered by **Minimax 2.1 via Ollama** (FREE!) with comprehensive system and file management tools.
 
 ## Features
 
-- **Minimax 2.1 Integration**: Cloud-based model via Ollama API
-- **File Operations**: Create, read, edit, write, delete files and directories
-- **Search Tools**: grep, regex search, fuzzy file search
-- **System Management**: Execute shell commands, process management
-- **Web Tools**: HTTP requests, web scraping, URL fetching
-- **Code Analysis**: AST parsing, linting, formatting
-- **Git Integration**: Repository operations, diff analysis
-- **Database Tools**: SQLite operations, query execution
+- **Minimax 2.1 via Ollama**: Free local AI model with cloud-level performance
+- **30+ Tools**: File operations, search, system management, web tools, code analysis, Git, database
+- **Autonomous Execution**: AI decides which tools to use and chains them together
+- **Safety Built-in**: Command restrictions, path validation, sandboxing
+- **Cross-platform**: Windows, Linux, macOS
 
-## Installation
+## Prerequisites
 
+1. **Python 3.9+**
+2. **Ollama** installed and running
+3. **Minimax 2.1 model** pulled in Ollama
+
+## Quick Start
+
+### 1. Install Ollama (if not installed)
+
+**Windows:**
+```powershell
+winget install Ollama.Ollama
+```
+
+**Linux/Mac:**
+```bash
+curl -fsSL https://ollama.ai/install.sh | sh
+```
+
+### 2. Pull Minimax 2.1 Model
+
+```bash
+ollama pull minimax
+```
+
+### 3. Setup This Project
+
+**Windows:**
+```powershell
+git clone https://github.com/meyoxyt/Development.git
+cd Development
+.\setup.ps1
+```
+
+**Linux/Mac:**
 ```bash
 git clone https://github.com/meyoxyt/Development.git
 cd Development
-pip install -r requirements.txt
+chmod +x setup.sh
+./setup.sh
 ```
 
-## Configuration
+### 4. Run It!
 
-1. Set up Minimax API credentials:
-```bash
-export MINIMAX_API_KEY="your_api_key_here"
-export MINIMAX_GROUP_ID="your_group_id_here"
-```
-
-2. Configure Ollama endpoint (optional):
-```bash
-export OLLAMA_HOST="http://localhost:11434"
-```
-
-## Usage
-
-```bash
-python main.py
-```
-
-Or interactive mode:
+**Interactive mode:**
 ```bash
 python main.py --interactive
 ```
 
-## Available Tools
+**Single query:**
+```bash
+python main.py --query "Create a Python project with tests"
+```
+
+## Configuration
+
+Edit `.env` file:
+
+```bash
+# Use Ollama (default)
+USE_OLLAMA=true
+OLLAMA_HOST=http://localhost:11434
+OLLAMA_MODEL=minimax
+
+# Or use Minimax Cloud API (requires paid API key)
+USE_OLLAMA=false
+MINIMAX_API_KEY=your_key
+MINIMAX_GROUP_ID=your_group
+```
+
+## Available Tools (30+)
 
 ### File Operations
 - `read_file(path)` - Read file contents
 - `write_file(path, content)` - Write content to file
-- `append_file(path, content)` - Append to existing file
+- `append_file(path, content)` - Append to file
 - `delete_file(path)` - Remove file
 - `list_directory(path)` - List directory contents
-- `create_directory(path)` - Create new directory
-- `remove_directory(path)` - Remove directory (recursive)
+- `create_directory(path)` - Create directory
+- `remove_directory(path)` - Remove directory recursively
 - `move_file(src, dst)` - Move/rename file
 - `copy_file(src, dst)` - Copy file
 
 ### Search Tools
-- `grep_search(pattern, path)` - Search files using regex
+- `grep_search(pattern, path)` - Regex search in files
 - `fuzzy_search(query, path)` - Fuzzy file name search
 - `find_files(pattern, path)` - Find files by pattern
 - `search_content(text, path)` - Search file contents
 
 ### System Tools
-- `execute_command(cmd)` - Run shell commands
+- `execute_command(cmd)` - Run shell commands (with safety)
 - `get_system_info()` - System information
 - `list_processes()` - List running processes
 - `kill_process(pid)` - Terminate process
+- `get_environment_variables()` - List env vars
 
 ### Web Tools
 - `http_request(url, method, data)` - Make HTTP requests
@@ -76,29 +113,80 @@ python main.py --interactive
 - `scrape_webpage(url)` - Extract webpage content
 
 ### Code Tools
-- `parse_code(file, language)` - Parse code to AST
-- `format_code(file, language)` - Auto-format code
-- `lint_code(file, language)` - Lint and check code
+- `format_code(path, language)` - Auto-format code (Black)
+- `lint_code(path, language)` - Lint code (flake8)
+- `parse_code(path, language)` - Parse code to AST
 
 ### Git Tools
 - `git_status()` - Repository status
-- `git_diff(file)` - Show file differences
-- `git_log(n)` - Show commit history
+- `git_diff(file)` - Show differences
+- `git_log(n)` - Commit history
 - `git_commit(message)` - Commit changes
+- `git_branch()` - List branches
 
 ### Database Tools
 - `db_query(query)` - Execute SQL query
 - `db_create_table(name, schema)` - Create table
 - `db_insert(table, data)` - Insert records
 
+## Usage Examples
+
+### Basic File Operations
+```bash
+python main.py -q "Create a file hello.txt with 'Hello World'"
+```
+
+### Search Files
+```bash
+python main.py -q "Find all Python files in the current directory"
+```
+
+### Complex Tasks
+```bash
+python main.py -q "Create a web scraper project with main.py, requirements.txt, and README.md"
+```
+
+### Interactive Mode
+```bash
+python main.py --interactive
+
+> You: Create a directory called 'projects' and list its contents
+> AI: [uses tools autonomously]
+```
+
+## Docker Support
+
+**With Ollama:**
+```bash
+docker-compose --profile ollama up
+```
+
+**Without Ollama (cloud API):**
+```bash
+docker-compose up
+```
+
+## Testing
+
+```bash
+# Run all tests
+pytest
+
+# Run with coverage
+pytest --cov=. --cov-report=html
+
+# Run specific test
+pytest tests/test_tools.py -v
+```
+
 ## Architecture
 
 ```
 Development/
 ├── main.py              # Entry point
-├── config.py            # Configuration management
+├── config.py            # Configuration
 ├── ai/
-│   ├── minimax_client.py    # Minimax API wrapper
+│   ├── minimax_client.py    # Ollama/Minimax client
 │   └── tool_executor.py     # Tool execution engine
 ├── tools/
 │   ├── file_ops.py          # File operations
@@ -109,36 +197,61 @@ Development/
 │   ├── git_tools.py         # Git integration
 │   └── database.py          # Database operations
 ├── utils/
-│   ├── logger.py            # Logging utilities
+│   ├── logger.py            # Logging
 │   └── validators.py        # Input validation
-└── tests/
-    └── test_tools.py        # Unit tests
+├── tests/
+│   └── test_tools.py        # Unit tests
+└── examples/
+    ├── basic_usage.py       # Basic examples
+    └── advanced_usage.py    # Advanced examples
 ```
 
-## Example
+## Safety Features
 
-```python
-from ai.minimax_client import MinimaxClient
-from ai.tool_executor import ToolExecutor
+- **Command Restrictions**: Blocks dangerous commands (`rm -rf /`, `sudo`, etc.)
+- **Path Validation**: Prevents access to system directories (`/etc`, `/sys`, etc.)
+- **File Size Limits**: Default 100MB per file
+- **Timeout Protection**: 30s command timeout, 300s total
+- **Workspace Sandboxing**: All operations relative to workspace directory
 
-# Initialize
-client = MinimaxClient()
-executor = ToolExecutor()
+## Troubleshooting
 
-# Ask AI to perform tasks
-response = client.chat(
-    "Create a directory called 'projects' and search all Python files in the current directory",
-    tools=executor.get_available_tools()
-)
+### "Ollama connection refused"
+```bash
+# Make sure Ollama is running
+ollama serve
 
-# AI automatically calls tools
-executor.execute(response.tool_calls)
+# Check if model is available
+ollama list
 ```
 
-## License
+### "Model not found"
+```bash
+# Pull the Minimax model
+ollama pull minimax
+```
 
-MIT License - See LICENSE file for details
+### "pip not recognized" (Windows)
+```powershell
+# Use python -m pip instead
+python -m pip install -r requirements.txt
+```
 
 ## Contributing
 
-Pull requests welcome! See CONTRIBUTING.md for guidelines.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+## License
+
+MIT License - See [LICENSE](LICENSE) file.
+
+## Support
+
+- Issues: [GitHub Issues](https://github.com/meyoxyt/Development/issues)
+- Docs: [GitHub Wiki](https://github.com/meyoxyt/Development/wiki)
+
+## Acknowledgments
+
+- Powered by [Minimax 2.1](https://www.minimaxi.com/)
+- Runs on [Ollama](https://ollama.ai/)
+- Built by [ELITE Studios](https://plugincenter.store)
