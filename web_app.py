@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Modern Web Application for Minimax 2.1 AI Assistant"""
 
-from flask import Flask, render_template, request, jsonify, session
+from flask import Flask, render_template, request, jsonify, send_from_directory
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit
 import asyncio
@@ -9,8 +9,9 @@ import json
 import os
 from pathlib import Path
 from datetime import datetime
-from typing import List, Dict
-import secrets
+from typing import List, Dict, Optional
+import markdown
+import threading
 
 from config import Config
 from ai.minimax_client import MinimaxClient
@@ -20,8 +21,8 @@ from utils.logger import setup_logger
 logger = setup_logger(__name__)
 
 # Initialize Flask app
-app = Flask(__name__)
-app.config['SECRET_KEY'] = secrets.token_hex(32)
+app = Flask(__name__, static_folder='static', template_folder='templates')
+app.config['SECRET_KEY'] = 'minimax-dev-secret-key'
 CORS(app)
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 
@@ -29,103 +30,106 @@ socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 client = MinimaxClient()
 executor = ToolExecutor()
 
-# Store workspaces in memory (later can move to DB)
-workspaces: Dict[str, Dict] = {}
+# Workspaces storage
+WORKSPACES_DIR = Path("workspaces")
+WORKSPACES_DIR.mkdir(exist_ok=True)
 
-def load_workspaces():
-    """Load workspaces from disk"""
-    workspace_dir = Path("workspaces")
-    workspace_dir.mkdir(exist_ok=True)
+class Workspace:
+    def __init__(self, id: str, name: str, path: str):
+        self.id = id
+        self.name = name
+        self.path = path
+        self.messages: List[Dict] = []
+        self.created_at = datetime.now().isoformat()
     
-    for file in workspace_dir.glob("*.json"):
-        try:
-            with open(file, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-                workspaces[data['id']] = data
-        except Exception as e:
-            logger.error(f"Failed to load workspace {file}: {e}")
-
-def save_workspace(workspace: Dict):
-    """Save workspace to disk"""
-    workspace_dir = Path("workspaces")
-    workspace_dir.mkdir(exist_ok=True)
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "path": self.path,
+            "messages": self.messages,
+            "created_at": self.created_at
+        }
     
-    file_path = workspace_dir / f"{workspace['id']}.json"
-    with open(file_path, 'w', encoding='utf-8') as f:
-        json.dump(workspace, f, indent=2)
+    def save(self):
+        file_path = WORKSPACES_DIR / f"{self.id}.json"
+        with open(file_path, 'w', encoding='utf-8') as f:
+            json.dump(self.to_dict(), f, indent=2)
+    
+    @staticmethod
+    def load(workspace_id: str) -> Optional['Workspace']:
+        file_path = WORKSPACES_DIR / f"{workspace_id}.json"
+        if not file_path.exists():
+            return None
+        
+        with open(file_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        
+        workspace = Workspace(data['id'], data['name'], data['path'])
+        workspace.messages = data.get('messages', [])
+        workspace.created_at = data.get('created_at', datetime.now().isoformat())
+        return workspace
+    
+    @staticmethod
+    def list_all() -> List['Workspace']:
+        workspaces = []
+        for file in WORKSPACES_DIR.glob("*.json"):
+            try:
+                with open(file, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                workspace = Workspace(data['id'], data['name'], data['path'])
+                workspace.messages = data.get('messages', [])
+                workspaces.append(workspace)
+            except Exception as e:
+                logger.error(f"Failed to load workspace {file}: {e}")
+        return workspaces
 
 @app.route('/')
 def index():
-    """Serve main page"""
     return render_template('index.html')
 
 @app.route('/api/workspaces', methods=['GET'])
 def get_workspaces():
-    """Get all workspaces"""
-    return jsonify(list(workspaces.values()))
+    workspaces = Workspace.list_all()
+    return jsonify([w.to_dict() for w in workspaces])
 
 @app.route('/api/workspaces', methods=['POST'])
 def create_workspace():
-    """Create new workspace"""
     data = request.json
-    
-    workspace_id = secrets.token_hex(8)
-    workspace = {
-        'id': workspace_id,
-        'name': data.get('name', 'Untitled Workspace'),
-        'path': data.get('path', str(Config.WORKSPACE_DIR)),
-        'messages': [],
-        'created_at': datetime.now().isoformat()
-    }
-    
-    workspaces[workspace_id] = workspace
-    save_workspace(workspace)
-    
-    return jsonify(workspace)
+    workspace_id = datetime.now().strftime("%Y%m%d_%H%M%S")
+    workspace = Workspace(workspace_id, data['name'], data['path'])
+    workspace.save()
+    return jsonify(workspace.to_dict())
 
 @app.route('/api/workspaces/<workspace_id>', methods=['GET'])
 def get_workspace(workspace_id):
-    """Get specific workspace"""
-    workspace = workspaces.get(workspace_id)
-    if not workspace:
-        return jsonify({'error': 'Workspace not found'}), 404
-    return jsonify(workspace)
+    workspace = Workspace.load(workspace_id)
+    if workspace:
+        return jsonify(workspace.to_dict())
+    return jsonify({'error': 'Workspace not found'}), 404
 
-@app.route('/api/workspaces/<workspace_id>', methods=['PUT'])
-def update_workspace(workspace_id):
-    """Update workspace"""
-    workspace = workspaces.get(workspace_id)
+@app.route('/api/workspaces/<workspace_id>/messages', methods=['POST'])
+def add_message(workspace_id):
+    workspace = Workspace.load(workspace_id)
     if not workspace:
         return jsonify({'error': 'Workspace not found'}), 404
     
     data = request.json
-    workspace.update(data)
-    save_workspace(workspace)
-    
-    return jsonify(workspace)
-
-@app.route('/api/workspaces/<workspace_id>', methods=['DELETE'])
-def delete_workspace(workspace_id):
-    """Delete workspace"""
-    if workspace_id in workspaces:
-        del workspaces[workspace_id]
-        
-        # Delete file
-        file_path = Path("workspaces") / f"{workspace_id}.json"
-        if file_path.exists():
-            file_path.unlink()
-        
-        return jsonify({'success': True})
-    
-    return jsonify({'error': 'Workspace not found'}), 404
+    message = {
+        'role': data['role'],
+        'content': data['content'],
+        'timestamp': datetime.now().isoformat()
+    }
+    workspace.messages.append(message)
+    workspace.save()
+    return jsonify(message)
 
 @socketio.on('send_message')
 def handle_message(data):
-    """Handle incoming chat message"""
-    workspace_id = data.get('workspace_id')
-    user_message = data.get('message')
+    workspace_id = data['workspace_id']
+    user_message = data['message']
     
-    workspace = workspaces.get(workspace_id)
+    workspace = Workspace.load(workspace_id)
     if not workspace:
         emit('error', {'message': 'Workspace not found'})
         return
@@ -136,55 +140,58 @@ def handle_message(data):
         'content': user_message,
         'timestamp': datetime.now().isoformat()
     }
-    workspace['messages'].append(user_msg)
+    workspace.messages.append(user_msg)
+    workspace.save()
     
-    # Send to client
-    emit('message', user_msg)
+    emit('message_received', user_msg)
+    emit('ai_thinking', {'status': True})
     
     # Process AI response in background
-    async def process():
+    def process_async():
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        
         try:
-            messages = [{'role': m['role'], 'content': m['content']} for m in workspace['messages']]
-            response = await client.chat(messages, tools=executor.get_tool_definitions())
+            # Prepare conversation history
+            messages = [{'role': m['role'], 'content': m['content']} for m in workspace.messages]
             
-            # Execute tools if needed
-            if response.get('tool_calls'):
-                await executor.execute_tools(response['tool_calls'])
+            # Get AI response
+            response = loop.run_until_complete(
+                client.chat(messages, tools=executor.get_tool_definitions())
+            )
+            
+            ai_content = response.get('content', 'No response')
+            
+            # Render markdown
+            ai_html = markdown.markdown(ai_content, extensions=['fenced_code', 'codehilite', 'tables'])
             
             ai_msg = {
                 'role': 'assistant',
-                'content': response.get('content', 'No response'),
+                'content': ai_content,
+                'html': ai_html,
                 'timestamp': datetime.now().isoformat()
             }
-            workspace['messages'].append(ai_msg)
-            save_workspace(workspace)
             
-            socketio.emit('message', ai_msg, room=request.sid)
-        
+            workspace.messages.append(ai_msg)
+            workspace.save()
+            
+            socketio.emit('ai_response', ai_msg)
+            socketio.emit('ai_thinking', {'status': False})
+            
         except Exception as e:
-            logger.error(f"AI response error: {e}")
-            socketio.emit('error', {'message': str(e)}, room=request.sid)
+            logger.error(f"AI error: {e}")
+            socketio.emit('error', {'message': str(e)})
+            socketio.emit('ai_thinking', {'status': False})
+        finally:
+            loop.close()
     
-    # Run async task
-    asyncio.run(process())
-
-@socketio.on('connect')
-def handle_connect():
-    logger.info(f"Client connected: {request.sid}")
-    emit('connected', {'data': 'Connected to server'})
-
-@socketio.on('disconnect')
-def handle_disconnect():
-    logger.info(f"Client disconnected: {request.sid}")
-
-def main():
-    """Run the web application"""
-    load_workspaces()
-    
-    port = int(os.getenv('PORT', 5000))
-    logger.info(f"Starting web server on http://localhost:{port}")
-    
-    socketio.run(app, host='0.0.0.0', port=port, debug=True)
+    thread = threading.Thread(target=process_async)
+    thread.start()
 
 if __name__ == '__main__':
-    main()
+    print("\n" + "="*50)
+    print("Minimax 2.1 AI Assistant - Web Interface")
+    print("="*50)
+    print(f"Open your browser at: http://localhost:5000")
+    print("Press Ctrl+C to stop\n")
+    socketio.run(app, host='0.0.0.0', port=5000, debug=False)
