@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minimax 2.1 AI Assistant</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap" rel="stylesheet">
+    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h1 class="logo">Minimax AI</h1>
+            </div>
+            
+            <div class="workspaces-section">
+                <div class="section-header">
+                    <h2>Workspaces</h2>
+                    <button class="btn-icon" id="newWorkspaceBtn" title="New Workspace">
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                            <path d="M10 4V16M4 10H16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                    </button>
+                </div>
+                <div id="workspaceList" class="workspace-list"></div>
+            </div>
+            
+            <div class="sidebar-footer">
+                <button class="btn-settings" id="settingsBtn">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                        <path d="M10 12.5C11.3807 12.5 12.5 11.3807 12.5 10C12.5 8.61929 11.3807 7.5 10 7.5C8.61929 7.5 7.5 8.61929 7.5 10C7.5 11.3807 8.61929 12.5 10 12.5Z" stroke="currentColor" stroke-width="1.5"/>
+                        <path d="M16.25 10C16.25 10.4 16.55 10.75 16.95 10.85L17.85 11.1C18.15 11.2 18.4 11.45 18.45 11.75C18.55 12.4 18.6 13.05 18.55 13.7C18.5 14 18.3 14.25 18 14.35L17.1 14.65C16.7 14.8 16.45 15.15 16.5 15.55C16.55 15.95 16.8 16.3 17.2 16.4L18.05 16.65C18.35 16.75 18.55 17 18.6 17.3C18.65 17.65 18.65 18 18.6 18.35C18.55 18.65 18.3 18.9 18 19L17.1 19.25C16.7 19.35 16.4 19.7 16.4 20.1C16.4 20.5 16.15 20.85 15.75 20.95L14.85 21.2C14.55 21.3 14.2 21.2 14 20.95C13.8 20.7 13.4 20.6 13.05 20.7C12.7 20.8 12.45 21.1 12.45 21.45V22.35C12.45 22.7 12.2 23 11.85 23.05C11.2 23.15 10.55 23.15 9.9 23.05C9.55 23 9.3 22.7 9.3 22.35V21.45C9.3 21.05 9 20.75 8.6 20.7C8.2 20.65 7.85 20.9 7.75 21.3L7.5 22.2C7.4 22.5 7.15 22.75 6.85 22.8C6.5 22.85 6.15 22.85 5.8 22.8C5.5 22.75 5.25 22.5 5.15 22.2L4.9 21.3C4.8 20.9 4.45 20.65 4.05 20.7C3.65 20.75 3.3 21 3.2 21.4L2.95 22.25C2.85 22.55 2.6 22.75 2.3 22.8C1.95 22.85 1.6 22.85 1.25 22.8C0.95 22.75 0.7 22.5 0.6 22.2L0.35 21.3C0.25 20.9 -0.1 20.65 -0.5 20.7C-0.9 20.75 -1.25 21 -1.35 21.4L-1.6 22.25C-1.7 22.55 -1.95 22.75 -2.25 22.8C-2.6 22.85 -2.95 22.85 -3.3 22.8C-3.6 22.75 -3.85 22.5 -3.95 22.2L-4.2 21.3C-4.3 20.9 -4.65 20.65 -5.05 20.7C-5.45 20.75 -5.8 21 -5.9 21.4L-6.15 22.25C-6.25 22.55 -6.5 22.75 -6.8 22.8" stroke="currentColor" stroke-width="1.5"/>
+                    </svg>
+                    Settings
+                </button>
+            </div>
+        </aside>
+        
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Top Bar -->
+            <header class="top-bar">
+                <div class="workspace-info">
+                    <h2 id="workspaceName" class="workspace-name">Select a workspace</h2>
+                    <p id="workspacePath" class="workspace-path"></p>
+                </div>
+                <button class="btn-secondary" id="changePathBtn">
+                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                        <path d="M15 6.75V4.5C15 3.67157 14.3284 3 13.5 3H4.5C3.67157 3 3 3.67157 3 4.5V13.5C3 14.3284 3.67157 15 4.5 15H6.75" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                        <path d="M9 9H15V15H9V9Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    Change Location
+                </button>
+            </header>
+            
+            <!-- Chat Messages -->
+            <div id="chatMessages" class="chat-messages"></div>
+            
+            <!-- Input Area -->
+            <div class="input-area">
+                <textarea 
+                    id="messageInput" 
+                    class="message-input" 
+                    placeholder="Type your message... (Ctrl+Enter to send)"
+                    rows="3"
+                ></textarea>
+                <button id="sendBtn" class="btn-primary">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                        <path d="M18 2L9 11M18 2L12 18L9 11M18 2L2 8L9 11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    Send
+                </button>
+            </div>
+        </main>
+    </div>
+    
+    <!-- Modals -->
+    <div id="newWorkspaceModal" class="modal">
+        <div class="modal-content">
+            <h3>Create New Workspace</h3>
+            <input type="text" id="workspaceNameInput" class="modal-input" placeholder="Workspace name">
+            <input type="text" id="workspacePathInput" class="modal-input" placeholder="Workspace path (optional)">
+            <div class="modal-actions">
+                <button class="btn-secondary" id="cancelWorkspaceBtn">Cancel</button>
+                <button class="btn-primary" id="createWorkspaceBtn">Create</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
