@@ -1,49 +1,43 @@
-"""Minimax AI Client with Ollama and Cloud API support"""
+"""Minimax AI Client - supports both Ollama and Cloud API"""
 
 import aiohttp
 import json
-from typing import List, Dict, Optional, Any
-from config import Config
+from typing import List, Dict, Optional
 from utils.logger import setup_logger
+from config import Config
 
 logger = setup_logger(__name__)
 
 class MinimaxClient:
-    """Client for Minimax AI via Ollama or Cloud API"""
+    """Client for interacting with Minimax AI (Ollama or Cloud)"""
     
     def __init__(self):
         self.use_ollama = Config.USE_OLLAMA
         self.ollama_host = Config.OLLAMA_HOST
         self.ollama_model = Config.OLLAMA_MODEL
-        self.api_key = Config.MINIMAX_API_KEY
-        self.group_id = Config.MINIMAX_GROUP_ID
-        self.api_url = Config.MINIMAX_API_URL
         
-        logger.info(f"Using {'Ollama' if self.use_ollama else 'Cloud API'}")
         if self.use_ollama:
-            logger.info(f"Ollama host: {self.ollama_host}, model: {self.ollama_model}")
-    
-    async def chat(
-        self,
-        messages: List[Dict[str, str]],
-        tools: Optional[List[Dict]] = None,
-        temperature: float = 0.7
-    ) -> Dict[str, Any]:
-        """Send chat request and get response"""
-        if self.use_ollama:
-            return await self._chat_ollama(messages, tools, temperature)
+            logger.info(f"Using Ollama at {self.ollama_host}")
         else:
-            return await self._chat_cloud(messages, tools, temperature)
+            self.api_key = Config.MINIMAX_API_KEY
+            self.group_id = Config.MINIMAX_GROUP_ID
+            self.api_url = Config.MINIMAX_API_URL
+            logger.info("Using Minimax Cloud API")
     
-    async def _chat_ollama(self, messages: List[Dict], tools: Optional[List], temperature: float) -> Dict:
-        """Chat using Ollama - uses OpenAI-compatible API"""
-        # Ollama uses /v1/chat/completions endpoint (OpenAI compatible)
+    async def chat(self, messages: List[Dict[str, str]], tools: Optional[List[Dict]] = None) -> Dict:
+        """Send chat request to AI"""
+        if self.use_ollama:
+            return await self._chat_ollama(messages, tools)
+        else:
+            return await self._chat_cloud(messages, tools)
+    
+    async def _chat_ollama(self, messages: List[Dict[str, str]], tools: Optional[List[Dict]] = None) -> Dict:
+        """Chat using Ollama (correct endpoint)"""
         url = f"{self.ollama_host}/v1/chat/completions"
         
         payload = {
             "model": self.ollama_model,
             "messages": messages,
-            "temperature": temperature,
             "stream": False
         }
         
@@ -56,16 +50,14 @@ class MinimaxClient:
                     response.raise_for_status()
                     data = await response.json()
                     
-                    # Extract response
-                    choice = data.get("choices", [{}])[0]
-                    message = choice.get("message", {})
+                    choice = data["choices"][0]
+                    message = choice["message"]
                     
                     result = {
                         "content": message.get("content", ""),
                         "role": "assistant"
                     }
                     
-                    # Check for tool calls
                     if "tool_calls" in message:
                         result["tool_calls"] = message["tool_calls"]
                     
@@ -75,7 +67,7 @@ class MinimaxClient:
             logger.error(f"Ollama API error: {e}")
             raise
     
-    async def _chat_cloud(self, messages: List[Dict], tools: Optional[List], temperature: float) -> Dict:
+    async def _chat_cloud(self, messages: List[Dict[str, str]], tools: Optional[List[Dict]] = None) -> Dict:
         """Chat using Minimax Cloud API"""
         headers = {
             "Authorization": f"Bearer {self.api_key}",
@@ -85,7 +77,7 @@ class MinimaxClient:
         payload = {
             "model": Config.MINIMAX_MODEL,
             "messages": messages,
-            "temperature": temperature
+            "stream": False
         }
         
         if tools:
@@ -93,17 +85,12 @@ class MinimaxClient:
         
         try:
             async with aiohttp.ClientSession() as session:
-                async with session.post(
-                    self.api_url,
-                    headers=headers,
-                    json=payload
-                ) as response:
+                async with session.post(self.api_url, headers=headers, json=payload) as response:
                     response.raise_for_status()
                     data = await response.json()
                     
-                    # Extract response
-                    choice = data.get("choices", [{}])[0]
-                    message = choice.get("message", {})
+                    choice = data["choices"][0]
+                    message = choice["message"]
                     
                     result = {
                         "content": message.get("content", ""),
@@ -116,5 +103,5 @@ class MinimaxClient:
                     return result
         
         except aiohttp.ClientError as e:
-            logger.error(f"Cloud API error: {e}")
+            logger.error(f"Minimax Cloud API error: {e}")
             raise

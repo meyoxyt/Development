@@ -1,18 +1,8 @@
-# Core
 requests>=2.31.0
 openai>=1.12.0
 python-dotenv>=1.0.0
 aiohttp>=3.9.0
 pydantic>=2.6.0
-psutil>=5.9.0
-
-# Web Framework
-flask>=3.0.0
-flask-cors>=4.0.0
-flask-socketio>=5.3.0
-python-socketio>=5.10.0
-
-# Utilities
 click>=8.1.0
 rich>=13.7.0
 prompt-toolkit>=3.0.43
@@ -21,11 +11,14 @@ gitpython>=3.1.41
 beautifulsoup4>=4.12.0
 lxml>=5.1.0
 colorama>=0.4.6
-markdown>=3.5.0
-
-# Development
 pytest>=8.0.0
 pytest-asyncio>=0.23.0
 black>=24.1.0
 flake8>=7.0.0
 mypy>=1.8.0
+psutil>=5.9.0
+flask>=3.0.0
+flask-cors>=4.0.0
+flask-socketio>=5.3.0
+python-socketio>=5.11.0
+markdown>=3.5.0
