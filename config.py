@@ -8,12 +8,12 @@ load_dotenv()
 class Config:
     """Application configuration"""
     
-    # Ollama Configuration for Minimax 2.1
+    # Ollama Configuration for Minimax 2.1 Cloud
     OLLAMA_HOST: str = os.getenv("OLLAMA_HOST", "http://localhost:11434")
-    OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "minimax")
+    OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "minimax-2.1:cloud")
     USE_OLLAMA: bool = True  # Always use Ollama by default
     
-    # Minimax Cloud API (optional, only if user wants cloud instead)
+    # Minimax Cloud API (optional, only if user wants direct API instead)
     MINIMAX_API_KEY: str = os.getenv("MINIMAX_API_KEY", "")
     MINIMAX_GROUP_ID: str = os.getenv("MINIMAX_GROUP_ID", "")
     MINIMAX_API_URL: str = "https://api.minimax.chat/v1/text/chatcompletion_v2"
@@ -42,7 +42,7 @@ class Config:
         """Validate configuration"""
         if cls.USE_OLLAMA:
             print(f"Using Ollama at {cls.OLLAMA_HOST} with model '{cls.OLLAMA_MODEL}'")
-            print("No API keys needed!")
+            print("No API keys needed - using Ollama's cloud-connected model!")
         elif not cls.MINIMAX_API_KEY or not cls.MINIMAX_GROUP_ID:
             raise ValueError("If not using Ollama, MINIMAX_API_KEY and MINIMAX_GROUP_ID must be set")
         return True

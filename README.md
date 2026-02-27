@@ -1,10 +1,10 @@
 # Development - Minimax 2.1 AI Assistant
 
-A full-featured AI assistant powered by **Minimax 2.1 via Ollama** (FREE!) with comprehensive system and file management tools.
+A full-featured AI assistant powered by **Minimax 2.1 Cloud** via Ollama (FREE!) with comprehensive system and file management tools.
 
 ## Features
 
-- **Minimax 2.1 via Ollama**: Free local AI model with cloud-level performance
+- **Minimax 2.1 Cloud via Ollama**: Free cloud-connected model through Ollama
 - **30+ Tools**: File operations, search, system management, web tools, code analysis, Git, database
 - **Autonomous Execution**: AI decides which tools to use and chains them together
 - **Safety Built-in**: Command restrictions, path validation, sandboxing
@@ -14,7 +14,7 @@ A full-featured AI assistant powered by **Minimax 2.1 via Ollama** (FREE!) with 
 
 1. **Python 3.9+**
 2. **Ollama** installed and running
-3. **Minimax 2.1 model** pulled in Ollama
+3. **Minimax 2.1 Cloud model** pulled in Ollama
 
 ## Quick Start
 
@@ -30,10 +30,10 @@ winget install Ollama.Ollama
 curl -fsSL https://ollama.ai/install.sh | sh
 ```
 
-### 2. Pull Minimax 2.1 Model
+### 2. Pull Minimax 2.1 Cloud Model
 
 ```bash
-ollama pull minimax
+ollama pull minimax-2.1:cloud
 ```
 
 ### 3. Setup This Project
@@ -70,12 +70,12 @@ python main.py --query "Create a Python project with tests"
 Edit `.env` file:
 
 ```bash
-# Use Ollama (default)
+# Use Ollama with minimax-2.1:cloud (default)
 USE_OLLAMA=true
 OLLAMA_HOST=http://localhost:11434
-OLLAMA_MODEL=minimax
+OLLAMA_MODEL=minimax-2.1:cloud
 
-# Or use Minimax Cloud API (requires paid API key)
+# Or use Minimax Cloud API directly (requires paid API key)
 USE_OLLAMA=false
 MINIMAX_API_KEY=your_key
 MINIMAX_GROUP_ID=your_group
@@ -227,8 +227,8 @@ ollama list
 
 ### "Model not found"
 ```bash
-# Pull the Minimax model
-ollama pull minimax
+# Pull the Minimax 2.1 Cloud model
+ollama pull minimax-2.1:cloud
 ```
 
 ### "pip not recognized" (Windows)
@@ -252,6 +252,6 @@ MIT License - See [LICENSE](LICENSE) file.
 
 ## Acknowledgments
 
-- Powered by [Minimax 2.1](https://www.minimaxi.com/)
+- Powered by [Minimax 2.1 Cloud](https://www.minimaxi.com/)
 - Runs on [Ollama](https://ollama.ai/)
 - Built by [ELITE Studios](https://plugincenter.store)
