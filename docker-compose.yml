@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  minimax-ai:
+    build: .
+    container_name: minimax-assistant
+    environment:
+      - MINIMAX_API_KEY=${MINIMAX_API_KEY}
+      - MINIMAX_GROUP_ID=${MINIMAX_GROUP_ID}
+      - USE_OLLAMA=${USE_OLLAMA:-false}
+      - OLLAMA_HOST=${OLLAMA_HOST:-http://ollama:11434}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    volumes:
+      - ./workspace:/app/workspace
+      - ./logs:/app/logs
+    stdin_open: true
+    tty: true
+    networks:
+      - ai-network
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama-server
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    networks:
+      - ai-network
+    profiles:
+      - ollama
+
+volumes:
+  ollama-data:
+
+networks:
+  ai-network:
+    driver: bridge
